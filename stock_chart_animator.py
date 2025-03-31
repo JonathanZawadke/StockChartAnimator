@@ -12,6 +12,8 @@ def fetch_stock_data(symbol, start, end):
 
 def create_animation(data, symbol):
     fig, ax = plt.subplots()
+    fig.set_size_inches(19.2, 10.8)
+    fig.set_dpi(100)
     ax.set_title(f'{symbol} Price Animation')
     ax.set_xlabel('Date')
     ax.set_ylabel('Price')
@@ -28,7 +30,7 @@ def create_animation(data, symbol):
         return line,
     
     ani = animation.FuncAnimation(fig, update, frames=len(data), init_func=init, blit=False, interval=50)
-    ani.save(f'output/{symbol}_animation.mp4', writer='ffmpeg')
+    ani.save(f'output/{symbol}_animation.mp4', writer='ffmpeg', dpi=100, bitrate=8000)
     plt.show()
 
 
