@@ -15,15 +15,27 @@ def create_animation(data, symbol):
     fig.set_size_inches(10.8, 19.2)
     fig.set_dpi(100)
     ax.set_title(f'{symbol} Price Animation')
-    ax.set_xlabel('Date')
-    ax.set_ylabel('Price')
+    #ax.set_xlabel('Date')
+    #ax.set_ylabel('Price')
+
+    # Set background color
+    ax.set_facecolor('#212121')
+    fig.patch.set_facecolor('#212121')
+
+    # Set axis color to white
+    ax.spines['top'].set_visible(False)  # Hides top edge
+    ax.spines['right'].set_visible(False)  # Hides right edge
+    ax.spines['bottom'].set_color('#ffffff')
+    ax.spines['left'].set_color('#ffffff')
+    ax.tick_params(axis='x', colors='#ffffff')
+    ax.tick_params(axis='y', colors='#ffffff')
     
-    line, = ax.plot([], [], 'b-', lw=2)
+    line, = ax.plot([], [], color='#3AFDFD', lw=2)
 
     # Initialize the text element for the last price value
     price_text = ax.text(data.index[0], data['Close'].iloc[0], 
                          f"{data['Close'].iloc[0].item():.2f}",
-                         fontsize=12, color='red', fontweight='bold')
+                         fontsize=12, color='#3AFDFD', fontweight='bold')
     
     def init():
         ax.set_xlim(data.index[0], data.index[-1])
