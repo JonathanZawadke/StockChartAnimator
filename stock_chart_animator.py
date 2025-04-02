@@ -12,7 +12,7 @@ def fetch_stock_data(symbol, start, end):
     return data
 
 
-def create_animation(data, symbol):
+def create_animation(data, symbol, start_capital=None):
     fig, ax = plt.subplots()
     fig.set_size_inches(10.8, 19.2)
     fig.set_dpi(100)
@@ -35,28 +35,36 @@ def create_animation(data, symbol):
     
     line, = ax.plot([], [], color='#3AFDFD', lw=2)
 
+    # Use investment calculation if start_capital is set
+    if start_capital is not None:
+        initial_price = data['Close'].iloc[0]
+        data['Investment Value'] = (data['Close'] / initial_price) * start_capital
+        y_data = 'Investment Value'
+    else:
+        y_data = 'Close'
+
     # Initialize the text element for the last price value
-    price_text = ax.text(data.index[0], data['Close'].iloc[0], 
-                         f"{data['Close'].iloc[0].item():.2f}",
+    price_text = ax.text(data.index[0], data[y_data].iloc[0], 
+                         f"{data[y_data].iloc[0].item():.2f}",
                          fontsize=12, color='#3AFDFD', fontweight='bold')
     
     # Initialize the limits for the x-axis (to zoom in initially)
     initial_zoom_period = 60  # Number of days to initially show (for zoom effect)
     ax.set_xlim(data.index[0], data.index[initial_zoom_period])  # Start with zoomed-in view
-    ax.set_ylim(float(data['Close'].min().item()), float(data['Close'].max().item()))
+    ax.set_ylim(float(data[y_data].min().item()), float(data[y_data].max().item()))
 
     def init():
         # Set the initial zoom on the X-axis (show first few months)
         ax.set_xlim(data.index[0], data.index[initial_zoom_period])
-        ax.set_ylim(float(data['Close'].min().item()), float(data['Close'].max().item()))
+        ax.set_ylim(float(data[y_data].min().item()), float(data[y_data].max().item()))
         return line,
     
     def update(frame):
-        line.set_data(data.index[:frame], data['Close'][:frame])
+        line.set_data(data.index[:frame], data[y_data][:frame])
 
         # Determine the last point
         x_last = data.index[frame - 1]
-        y_last = float(data['Close'].iloc[frame - 1].item())
+        y_last = float(data[y_data].iloc[frame - 1].item())
 
         # Update text position
         price_text.set_position((x_last, y_last))
@@ -70,7 +78,7 @@ def create_animation(data, symbol):
         # Dynamically adjust the y-axis limits based on the price data
         # Ensure that there is data to calculate min and max
         if frame > 0:  # Avoid empty slices
-            valid_data = data['Close'][:frame]
+            valid_data = data[y_data][:frame]
             
             # Calculate the min and max prices up to the current frame
             min_price = valid_data.min().item()  # Minimum price seen up to the current frame
@@ -98,5 +106,10 @@ if __name__ == "__main__":
     end = "2025-03-30"
     
     data = fetch_stock_data(symbol, start, end)
+
+    use_investment = input("Would you like to simulate an investment? (yes/no): ").strip().lower()
+    start_capital = None
+    if use_investment == "yes":
+        start_capital = float(input("Enter initial investment amount: "))
     
-    create_animation(data, symbol)
+    create_animation(data, symbol, start_capital)
