@@ -2,13 +2,15 @@ import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import os
 
 max_y_value = 0
+directory_path = "output"
 
 def fetch_stock_data(symbol, start, end):
     data = yf.download(symbol, start=start, end=end)
     # save as CSV (optional)
-    data.to_csv("output/nvidia_stock.csv")
+    data.to_csv(f"{directory_path}/nvidia_stock.csv")
     return data
 
 
@@ -97,13 +99,16 @@ def create_animation(data, symbol, start_capital=None):
         return line, price_text
     
     ani = animation.FuncAnimation(fig, update, frames=len(data), init_func=init, blit=False, interval=50)
-    ani.save(f'output/{symbol}_animation.mp4', writer='ffmpeg', dpi=100, bitrate=8000)
+    ani.save(f'{directory_path}/{symbol}_animation.mp4', writer='ffmpeg', dpi=100, bitrate=8000)
 
 
 if __name__ == "__main__":
     symbol = "NVDA"
     start = "2020-01-01"
     end = "2025-03-30"
+
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
     
     data = fetch_stock_data(symbol, start, end)
 
