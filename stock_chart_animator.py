@@ -7,6 +7,35 @@ import os
 max_y_value = 0
 directory_path = "output"
 
+def calculate_portfolio_value(data, monthly_investment):
+    shares_owned = 0
+    total_invested = 0
+
+    dates = []
+    closes = []
+    invested = []
+    
+    for date, row in data.iterrows():
+        price = float(row['Close'].item())
+        shares_bought = monthly_investment / price
+        shares_owned += shares_bought
+        total_invested += monthly_investment
+        current_value = float(shares_owned * price)
+
+        dates.append(date)
+        closes.append(current_value)
+        invested.append(total_invested)
+        
+    portfolio_df = pd.DataFrame({
+        'Close': closes,
+        'Total_Invested': invested
+    }, index=dates)
+
+    # save as CSV (optional)
+    portfolio_df.to_csv(f"{directory_path}/portfolio_value.csv", index=True)
+    return portfolio_df
+
+
 def fetch_stock_data(symbol, start, end):
     data = yf.download(symbol, start=start, end=end)
     # save as CSV (optional)
@@ -112,9 +141,47 @@ if __name__ == "__main__":
     
     data = fetch_stock_data(symbol, start, end)
 
-    use_investment = input("Would you like to simulate an investment? (yes/no): ").strip().lower()
+    # --- User Input for Mode Selection ---
+    mode = 'price' # Default mode
     start_capital = None
-    if use_investment == "yes":
-        start_capital = float(input("Enter initial investment amount: "))
-    
-    create_animation(data, symbol, start_capital)
+    monthly_amount = None
+
+    print("\nSelect visualization type:")
+    print("  P: Show stock price only")
+    print("  S: Simulate a single initial investment")
+    print("  M: Simulate recurring monthly investments")
+    # Added an option to just exit
+    print("  Q: Quit")
+    investment_type = input("Enter choice (P/S/M/Q): ").strip().upper()
+
+    # --- Process User Choice ---
+    if investment_type == 'S':
+        mode = 'single'
+        try:
+            start_capital = float(input("Enter initial investment amount (e.g., 1000): "))
+            if start_capital <= 0: raise ValueError("Investment must be positive.")
+
+            create_animation(data, symbol, start_capital)
+
+        except ValueError as e:
+            print(f"Invalid input: {e}. Showing stock price instead.")
+            mode = 'price'
+
+    elif investment_type == 'M':
+        mode = 'monthly'
+        try:
+            monthly_amount = float(input("Enter monthly investment amount (e.g., 100): "))
+            if monthly_amount <= 0: raise ValueError("Monthly investment must be positive.")
+
+            portfolio_df = calculate_portfolio_value(data, monthly_amount)
+            create_animation(portfolio_df, symbol, None)
+        except:
+            print(f"An error occurred.")
+            mode = 'price'
+    elif investment_type == 'P':
+        mode = 'price'
+        create_animation(data, symbol, None)
+
+    elif investment_type == 'Q':
+        print("Exiting.")
+        exit()
