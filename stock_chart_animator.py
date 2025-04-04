@@ -99,11 +99,19 @@ def create_animation(data, symbol, start_capital=None):
 
         # Update text position
         price_text.set_position((x_last, y_last))
-        price_text.set_text(f"{y_last:.2f}")
+        price_text.set_text(f"{y_last:.0f}")
 
-        # Dynamische Skalierung der x-Achse
-        x_start = data.index[0]  # Anfang des Charts bleibt immer sichtbar
-        x_end = data.index[frame]  # Ende bleibt fixiert
+        # Dynamic x-axis scaling
+        x_start = data.index[0]  # The beginning of the chart always remains visible
+        if frame > 1:
+            visible_range = data.index[:frame]
+            num_days = (visible_range[-1] - visible_range[0]).days
+            scaling_factor = 0.1  # 10 % additional space
+            right_offset = pd.Timedelta(days=int(num_days * scaling_factor))
+            x_end = data.index[frame - 1] + right_offset
+        else:
+            x_end = data.index[frame - 1]  # No offset if there is too little data
+
         ax.set_xlim(x_start, x_end)
 
         # Dynamically adjust the y-axis limits based on the price data
