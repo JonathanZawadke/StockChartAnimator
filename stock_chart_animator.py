@@ -46,6 +46,16 @@ def currency_formatter(x, pos):
         return f'{x/1e3:.0f}k'
     else:
         return f'{x:.0f}'
+    
+
+def calculate_interval(data):
+    total_frames = len(data)
+    target_duration = 61
+    
+    # Calculate the interval between each frame to ensure the video duration is ~1 minute
+    interval = int(target_duration * 1000 / total_frames)  # In milliseconds
+
+    return interval
 
 
 def fetch_stock_data(symbol, start, end):
@@ -161,7 +171,10 @@ def create_animation(data, symbol, start_capital=None):
 
         return line, price_text
     
-    ani = animation.FuncAnimation(fig, update, frames=len(data), init_func=init, blit=False, interval=50)
+    # Dynamically calculate the number of frames and the interval
+    interval = calculate_interval(data)
+    
+    ani = animation.FuncAnimation(fig, update, frames=len(data), init_func=init, blit=False, interval=interval)
     ani.save(f'{directory_path}/{symbol}_animation.mp4', writer='ffmpeg', dpi=100, bitrate=8000)
 
 
@@ -209,8 +222,8 @@ if __name__ == "__main__":
 
             portfolio_df = calculate_portfolio_value(data, monthly_amount)
             create_animation(portfolio_df, symbol, None)
-        except:
-            print(f"An error occurred.")
+        except Exception as e:
+            print(f"An error occurred. ${e}.")
             mode = 'price'
     elif investment_type == 'P':
         mode = 'price'
