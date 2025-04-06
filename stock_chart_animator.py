@@ -2,7 +2,10 @@ import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.dates as mdates
+import matplotlib.ticker as mticker
 import os
+from matplotlib.ticker import MaxNLocator
 
 max_y_value = 0
 directory_path = "output"
@@ -36,6 +39,15 @@ def calculate_portfolio_value(data, monthly_investment):
     return portfolio_df
 
 
+def currency_formatter(x, pos):
+    if x >= 1e6:
+        return f'{x/1e6:.1f}M'
+    elif x >= 1e3:
+        return f'{x/1e3:.0f}k'
+    else:
+        return f'{x:.0f}'
+
+
 def fetch_stock_data(symbol, start, end):
     data = yf.download(symbol, start=start, end=end)
     # save as CSV (optional)
@@ -48,7 +60,7 @@ def create_animation(data, symbol, start_capital=None):
     fig.set_size_inches(10.8, 19.2)
     fig.set_dpi(100)
     fig.autofmt_xdate()
-    ax.set_title(f'{symbol} Price Animation')
+    ax.set_title(f'{symbol} Price Animation', fontsize=16, color='#ffffff', fontweight='bold')
     #ax.set_xlabel('Date')
     #ax.set_ylabel('Price')
 
@@ -59,12 +71,14 @@ def create_animation(data, symbol, start_capital=None):
     # Set axis color to white
     ax.spines['top'].set_visible(False)  # Hides top edge
     ax.spines['right'].set_visible(False)  # Hides right edge
-    ax.spines['bottom'].set_color('#ffffff')
-    ax.spines['left'].set_color('#ffffff')
-    ax.tick_params(axis='x', colors='#ffffff')
-    ax.tick_params(axis='y', colors='#ffffff')
+    for spine in ['bottom', 'left']:
+        ax.spines[spine].set_color('#ffffff')
+        ax.spines[spine].set_linewidth(1.5)
+
+    ax.tick_params(axis='x', colors='#ffffff', labelsize=12)
+    ax.tick_params(axis='y', colors='#ffffff', labelsize=12)
     
-    line, = ax.plot([], [], color='#3AFDFD', lw=2)
+    line, = ax.plot([], [], color='#3AFDFD', lw=4)
 
     # Use investment calculation if start_capital is set
     if start_capital is not None:
@@ -88,8 +102,15 @@ def create_animation(data, symbol, start_capital=None):
         # Set the initial zoom on the X-axis (show first few months)
         ax.set_xlim(data.index[0], data.index[initial_zoom_period])
         ax.set_ylim(float(data[y_data].min().item()), float(data[y_data].max().item()))
-        return line,
-    
+        
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=5))  # max 6 Ticks on X-axis
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%m.%Y'))
+
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=5))  # max 6 Ticks on Y-axis
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(currency_formatter))
+
+        return line, 
+
     def update(frame):
         line.set_data(data.index[:frame], data[y_data][:frame])
 
@@ -97,9 +118,14 @@ def create_animation(data, symbol, start_capital=None):
         x_last = data.index[frame - 1]
         y_last = float(data[y_data].iloc[frame - 1].item())
 
+        # Add small offset to x position of price text
+        x_range = ax.get_xlim()
+        x_offset = (x_range[1] - x_range[0]) * 0.02  # 1% of total x-range as offset
+        x_text = x_last + pd.Timedelta(days=int(x_offset))  # Shift x position by offset in days
+
         # Update text position
-        price_text.set_position((x_last, y_last))
-        price_text.set_text(f"{y_last:.0f}")
+        price_text.set_position((x_text, y_last))
+        price_text.set_text(currency_formatter(y_last, None))
 
         # Dynamic x-axis scaling
         x_start = data.index[0]  # The beginning of the chart always remains visible
@@ -141,7 +167,7 @@ def create_animation(data, symbol, start_capital=None):
 
 if __name__ == "__main__":
     symbol = "NVDA"
-    start = "2020-01-01"
+    start = "2023-01-01"
     end = "2025-03-30"
 
     if not os.path.exists(directory_path):
