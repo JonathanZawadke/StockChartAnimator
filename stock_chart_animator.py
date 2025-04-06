@@ -9,6 +9,14 @@ from matplotlib.ticker import MaxNLocator
 
 max_y_value = 0
 directory_path = "output"
+TARGET_FRAMES = 1800  # 60 seconds with 30 FPS
+
+def interpolate_data(data, target_length=TARGET_FRAMES):
+    # Interpolates the data to the desired number of frames.
+    new_index = pd.date_range(start=data.index.min(), end=data.index.max(), periods=target_length)
+    data_interpolated = data.reindex(data.index.union(new_index)).interpolate(method='time').reindex(new_index)
+    return data_interpolated
+
 
 def calculate_portfolio_value(data, monthly_investment):
     shares_owned = 0
@@ -36,7 +44,7 @@ def calculate_portfolio_value(data, monthly_investment):
 
     # save as CSV (optional)
     portfolio_df.to_csv(f"{directory_path}/portfolio_value.csv", index=True)
-    return portfolio_df
+    return interpolate_data(portfolio_df)
 
 
 def currency_formatter(x, pos):
@@ -171,22 +179,28 @@ def create_animation(data, symbol, start_capital=None):
 
         return line, price_text
     
-    # Dynamically calculate the number of frames and the interval
-    interval = calculate_interval(data)
+
+    interval = 1000 / 30
     
-    ani = animation.FuncAnimation(fig, update, frames=len(data), init_func=init, blit=False, interval=interval)
+    ani = animation.FuncAnimation(fig, update, 
+                                  frames=TARGET_FRAMES if len(data) > TARGET_FRAMES else len(data), 
+                                  init_func=init, 
+                                  blit=False, 
+                                  interval=interval
+                                  )
     ani.save(f'{directory_path}/{symbol}_animation.mp4', writer='ffmpeg', dpi=100, bitrate=8000)
 
 
 if __name__ == "__main__":
     symbol = "NVDA"
-    start = "2023-01-01"
+    start = "2024-09-01"
     end = "2025-03-30"
 
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
     
     data = fetch_stock_data(symbol, start, end)
+    data = interpolate_data(data)
 
     # --- User Input for Mode Selection ---
     mode = 'price' # Default mode
