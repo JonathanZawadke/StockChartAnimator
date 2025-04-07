@@ -42,16 +42,20 @@ def calculate_portfolio_value(data, monthly_investment):
             total_invested += monthly_investment
         
         current_value = shares_owned * float(row['Close'])
-        
         dates.append(date)
         closes.append(current_value)
         invested.append(total_invested)
     
     portfolio_df = pd.DataFrame({'Close': closes, 'Total_Invested': invested}, index=dates)
-
-    # save as CSV (optional)
+    portfolio_df = interpolate_data(portfolio_df)
+    portfolio_df['Total_Invested'] = portfolio_df['Total_Invested'].ffill()  # Wichtig für korrekte Darstellung
     portfolio_df.to_csv(f"{directory_path}/portfolio_value.csv", index=True)
-    return interpolate_data(portfolio_df)
+    return portfolio_df
+
+
+def ask_show_invested():
+    response = input("Show total invested line? (Y/N): ").strip().upper()
+    return response == 'Y'
 
 
 def currency_formatter(x, pos):
@@ -80,7 +84,7 @@ def fetch_stock_data(symbol, start, end):
     return data
 
 
-def create_animation(data, symbol, start_capital=None):
+def create_animation(data, symbol, start_capital=None, show_invested=False):
     fig, ax = plt.subplots()
     fig.set_size_inches(10.8, 19.2)
     fig.set_dpi(100)
@@ -104,6 +108,13 @@ def create_animation(data, symbol, start_capital=None):
     ax.tick_params(axis='y', colors='#ffffff', labelsize=12)
     
     line, = ax.plot([], [], color='#3AFDFD', lw=4)
+    line_invested = None
+    text_invested = None
+
+    if show_invested:
+        line_invested, = ax.plot([], [], color='#FF69B4', lw=4)
+        text_invested = ax.text(data.index[0], data['Total_Invested'].iloc[0], 
+                              "", fontsize=12, color='#FF69B4', fontweight='bold')
 
     # Use investment calculation if start_capital is set
     if start_capital is not None:
@@ -126,7 +137,15 @@ def create_animation(data, symbol, start_capital=None):
     def init():
         # Set the initial zoom on the X-axis (show first few months)
         ax.set_xlim(data.index[0], data.index[initial_zoom_period])
-        ax.set_ylim(float(data[y_data].min().item()), float(data[y_data].max().item()))
+
+        # Calculate Y limits for both lines
+        y_min = data[y_data].min().item()
+        y_max = data[y_data].max().item()
+        if show_invested:
+            y_min = min(y_min, data['Total_Invested'].min().item())
+            y_max = max(y_max, data['Total_Invested'].max().item())
+        
+        ax.set_ylim(y_min, y_max)
         
         ax.xaxis.set_major_locator(MaxNLocator(nbins=5))  # max 6 Ticks on X-axis
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%m.%Y'))
@@ -134,23 +153,32 @@ def create_animation(data, symbol, start_capital=None):
         ax.yaxis.set_major_locator(MaxNLocator(nbins=5))  # max 6 Ticks on Y-axis
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(currency_formatter))
 
-        return line, 
+        return (line, line_invested) if show_invested else (line,)
 
     def update(frame):
         line.set_data(data.index[:frame], data[y_data][:frame])
 
-        # Determine the last point
+       # Determine the last point
         x_last = data.index[frame - 1]
         y_last = float(data[y_data].iloc[frame - 1].item())
 
         # Add small offset to x position of price text
         x_range = ax.get_xlim()
-        x_offset = (x_range[1] - x_range[0]) * 0.02  # 1% of total x-range as offset
-        x_text = x_last + pd.Timedelta(days=int(x_offset))  # Shift x position by offset in days
+        x_offset_pct = 0.02  # 2% offset for both texts
+        x_offset = (x_range[1] - x_range[0]) * x_offset_pct
+        x_text = x_last + pd.Timedelta(days=int(x_offset))
 
-        # Update text position
+        # Update portfolio text position
         price_text.set_position((x_text, y_last))
         price_text.set_text(currency_formatter(y_last, None))
+
+        # Update investment text if shown
+        if show_invested:
+            line_invested.set_data(data.index[:frame], data['Total_Invested'][:frame])
+            
+            y_last_invested = data['Total_Invested'].iloc[frame-1].item()
+            text_invested.set_position((x_text, y_last_invested))
+            text_invested.set_text(currency_formatter(y_last_invested, None))
 
         # Dynamic x-axis scaling
         x_start = data.index[0]  # The beginning of the chart always remains visible
@@ -167,24 +195,23 @@ def create_animation(data, symbol, start_capital=None):
 
         # Dynamically adjust the y-axis limits based on the price data
         # Ensure that there is data to calculate min and max
-        if frame > 0:  # Avoid empty slices
-            valid_data = data[y_data][:frame]
+        if frame > 0:
+            current_values = data[y_data][:frame]
+            min_price = current_values.min().item()
+            max_price = current_values.max().item()
             
-            # Calculate the min and max prices up to the current frame
-            min_price = valid_data.min().item()  # Minimum price seen up to the current frame
-            max_price = valid_data.max().item()  # Maximum price seen up to the current frame
-            
-            # Track the maximum price across all frames
-            global max_y_value
-            if max_y_value < max_price:
-                max_y_value = max_price  # Update the global max value
-            
-            margin = (max_y_value - min_price) * 0.1  # Add a margin to avoid the price hitting the axis
+            if show_invested:
+                invested_values = data['Total_Invested'][:frame]
+                min_price = min(min_price, invested_values.min().item())
+                max_price = max(max_price, invested_values.max().item())
 
-            # Set the y-axis limits with some padding to ensure the price doesn't touch the edges
+            global max_y_value
+            max_y_value = max(max_y_value, max_price)
+            margin = (max_y_value - min_price) * 0.1
+            
             ax.set_ylim(min_price - margin, max_y_value + margin)
 
-        return line, price_text
+        return (line, line_invested, text_invested) if show_invested else (line, text_invested)
     
 
     interval = 1000 / 30
@@ -241,8 +268,9 @@ if __name__ == "__main__":
             monthly_amount = float(input("Enter monthly investment amount (e.g., 100): "))
             if monthly_amount <= 0: raise ValueError("Monthly investment must be positive.")
 
+            show_invested = ask_show_invested()
             portfolio_df = calculate_portfolio_value(data, monthly_amount)
-            create_animation(portfolio_df, symbol, None)
+            create_animation(portfolio_df, symbol, None, show_invested)
         except Exception as e:
             print(f"An error occurred. ${e}.")
             mode = 'price'
