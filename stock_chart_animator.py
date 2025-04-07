@@ -28,18 +28,32 @@ def calculate_portfolio_value(data, monthly_investment):
     # Find the first trading day of each month
     monthly_dates = []
     current_month = None
+
+    # First pass: Identify investment days
     for date in data.index:
         if date.month != current_month:
             monthly_dates.append(date)
             current_month = date.month
     
-    for date, row in data.iterrows():
-        # Invest on the first trading day of the month
-        if date in monthly_dates:
+    # Second pass: Create smooth investment steps
+    investment_steps = {}
+    for i, invest_date in enumerate(monthly_dates):
+        # Distribute investment over 10 frames (0.5% of total animation)
+        start_frame = data.index.get_loc(invest_date)
+        end_frame = min(start_frame + 10, len(data)-1)
+        
+        for frame in range(start_frame, end_frame+1):
+            fraction = (frame - start_frame) / (end_frame - start_frame)
+            investment_steps[frame] = monthly_investment * fraction
+    
+    # Third pass: Calculate values
+    for frame, (date, row) in enumerate(data.iterrows()):
+        # Add partial investments
+        if frame in investment_steps:
             price = float(row['Close'])
-            shares_bought = monthly_investment / price
+            shares_bought = investment_steps[frame] / price
             shares_owned += shares_bought
-            total_invested += monthly_investment
+            total_invested += investment_steps[frame]
         
         current_value = shares_owned * float(row['Close'])
         dates.append(date)
@@ -48,7 +62,6 @@ def calculate_portfolio_value(data, monthly_investment):
     
     portfolio_df = pd.DataFrame({'Close': closes, 'Total_Invested': invested}, index=dates)
     portfolio_df = interpolate_data(portfolio_df)
-    portfolio_df['Total_Invested'] = portfolio_df['Total_Invested'].ffill()  # Wichtig für korrekte Darstellung
     portfolio_df.to_csv(f"{directory_path}/portfolio_value.csv", index=True)
     return portfolio_df
 
