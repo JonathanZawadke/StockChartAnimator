@@ -21,26 +21,33 @@ def interpolate_data(data, target_length=TARGET_FRAMES):
 def calculate_portfolio_value(data, monthly_investment):
     shares_owned = 0
     total_invested = 0
-
     dates = []
     closes = []
     invested = []
     
+    # Find the first trading day of each month
+    monthly_dates = []
+    current_month = None
+    for date in data.index:
+        if date.month != current_month:
+            monthly_dates.append(date)
+            current_month = date.month
+    
     for date, row in data.iterrows():
-        price = float(row['Close'].item())
-        shares_bought = monthly_investment / price
-        shares_owned += shares_bought
-        total_invested += monthly_investment
-        current_value = float(shares_owned * price)
-
+        # Invest on the first trading day of the month
+        if date in monthly_dates:
+            price = float(row['Close'])
+            shares_bought = monthly_investment / price
+            shares_owned += shares_bought
+            total_invested += monthly_investment
+        
+        current_value = shares_owned * float(row['Close'])
+        
         dates.append(date)
         closes.append(current_value)
         invested.append(total_invested)
-        
-    portfolio_df = pd.DataFrame({
-        'Close': closes,
-        'Total_Invested': invested
-    }, index=dates)
+    
+    portfolio_df = pd.DataFrame({'Close': closes, 'Total_Invested': invested}, index=dates)
 
     # save as CSV (optional)
     portfolio_df.to_csv(f"{directory_path}/portfolio_value.csv", index=True)
