@@ -71,13 +71,16 @@ def ask_show_invested():
     return response == 'Y'
 
 
-def currency_formatter(x, pos):
-    if x >= 1e6:
-        return f'{x/1e6:.1f}M'
-    elif x >= 1e3:
-        return f'{x/1e3:.0f}k'
-    else:
-        return f'{x:.0f}'
+def create_currency_formatter(symbol):
+    """Creates a currency formatting function with the selected symbol"""
+    def currency_formatter(x, pos):
+        if x >= 1e6:
+            return f'{symbol}{x/1e6:.1f}M'
+        elif x >= 1e3:
+            return f'{symbol}{x/1e3:.0f}k'
+        else:
+            return f'{symbol}{x:.0f}'
+    return currency_formatter
     
 
 def calculate_interval(data):
@@ -238,6 +241,14 @@ def create_animation(data, symbol, start_capital=None, show_invested=False):
     ani.save(f'{directory_path}/{symbol}_animation.mp4', writer='ffmpeg', dpi=100, bitrate=8000)
 
 
+def ask_currency():
+    """Asks the user for the desired currency"""
+    while True:
+        currency = input("Select currency (€/$): ").strip().upper()
+        if currency in ['€', '$']:
+            return currency
+        print("Invalid currency. Please enter € or $.")
+
 if __name__ == "__main__":
     symbol = "NVDA"
     start = "2024-09-01"
@@ -253,6 +264,9 @@ if __name__ == "__main__":
     mode = 'price' # Default mode
     start_capital = None
     monthly_amount = None
+
+    currency_symbol = ask_currency()
+    currency_formatter = create_currency_formatter(currency_symbol)
 
     print("\nSelect visualization type:")
     print("  P: Show stock price only")
