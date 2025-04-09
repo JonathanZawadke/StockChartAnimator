@@ -75,11 +75,21 @@ def create_currency_formatter(symbol):
     """Creates a currency formatting function with the selected symbol"""
     def currency_formatter(x, pos):
         if x >= 1e6:
-            return f'{symbol}{x/1e6:.1f}M'
+            return f"{symbol}{x/1e6:.1f}M"
         elif x >= 1e3:
-            return f'{symbol}{x/1e3:.0f}k'
+            value_k = x / 1e3
+            if value_k < 10:
+                # 1.000-9.999: 2 Decimals (e.g. 1,23k)
+                return f"{symbol}{value_k:.2f}k"
+            elif value_k < 100:
+                # 10.000-99.999: 1 Decimals (e.g. 10,1k)
+                return f"{symbol}{value_k:.1f}k"
+            else:
+                # from 100.000: no Decimals (e.g. 100k)
+                return f"{symbol}{value_k:.0f}k"
         else:
-            return f'{symbol}{x:.0f}'
+            # Unter 1.000: whole number (e.g. 999)
+            return f"{symbol}{x:.0f}"
     return currency_formatter
     
 
