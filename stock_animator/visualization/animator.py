@@ -14,6 +14,7 @@ class AnimationBuilder:
 
     def create_animation(self, data, symbol, formatter, **options):
         """Main method to create animation"""
+        self.max_y = 0  # Reset max_y for each animation
         # Add start_capital logic
         if 'start_capital' in options and options['start_capital'] is not None:
             initial_price = data['Close'].iloc[0]
@@ -64,7 +65,7 @@ class AnimationBuilder:
         """Create plot artists with start_capital support"""
         line, = ax.plot([], [], 
                        color=self.config.COLORS['primary'], 
-                       lw=4,
+                       lw=3,
                        label='Portfolio Value')
         
         line_inv = None
@@ -72,7 +73,7 @@ class AnimationBuilder:
         if options.get('show_invested'):
             line_inv, = ax.plot([], [], 
                                color=self.config.COLORS['secondary'], 
-                               lw=2,
+                               lw=3,
                                alpha=0.7,
                                label='Total Invested')
             text_inv = ax.text(data.index[0], data['Total_Invested'].iloc[0], "",
