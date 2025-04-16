@@ -40,9 +40,9 @@ class PortfolioCalculator:
         for date in dates:
             start = data.index.get_loc(date)
             end = min(start + self.config.INVESTMENT_SMOOTHING_FRAMES, len(data)-1)
-            for frame in range(start, end+1):
-                fraction = (frame - start) / (end - start)
-                steps[frame] = investment * fraction
+            num_frames = end - start + 1
+            for frame in range(start, end + 1):
+                steps[frame] = investment / num_frames
         return steps
     
     def _process_frame(self, frame, row, steps, shares_owned, total_invested):
