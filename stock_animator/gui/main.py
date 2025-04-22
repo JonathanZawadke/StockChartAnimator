@@ -1,12 +1,12 @@
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QComboBox,
                              QDateEdit, QPushButton, QLabel, QLineEdit, QCheckBox)
 from PyQt5.QtCore import QDate, QStringListModel
-from ..core.data_fetcher import DataHandler
-from ..core.portfolio_calculator import PortfolioCalculator
-from ..visualization.animator import AnimationBuilder
-from ..visualization.formatters import CurrencyFormatter
-from ..gui.symbol_combo_box import SymbolComboBox
-from ..gui.symbol_loader import SymbolLoader
+from stock_animator.core.data_fetcher import DataHandler
+from stock_animator.core.portfolio_calculator import PortfolioCalculator
+from stock_animator.visualization.animator import AnimationBuilder
+from stock_animator.visualization.formatters import CurrencyFormatter
+from stock_animator.gui.symbol_combo_box import SymbolComboBox
+from stock_animator.gui.symbol_loader import SymbolLoader
 from stock_animator.config.settings import AnimationConfig
 
 class StockAnimatorGUI(QWidget):

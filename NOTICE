@@ -1,0 +1,8 @@
+This project includes components from third-party software:
+
+FFmpeg (https://ffmpeg.org/)
+- Licensed under LGPL/GPL
+- Unmodified binaries located in /lib/ffmpeg
+- Full license text: lib/ffmpeg/LICENSE
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.

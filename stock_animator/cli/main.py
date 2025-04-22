@@ -1,8 +1,8 @@
-from ..core.data_fetcher import DataHandler
-from ..core.portfolio_calculator import PortfolioCalculator
-from ..visualization.animator import AnimationBuilder
-from ..visualization.formatters import CurrencyFormatter
-from ..cli.prompts import CLIPrompter
+from stock_animator.core.data_fetcher import DataHandler
+from stock_animator.core.portfolio_calculator import PortfolioCalculator
+from stock_animator.visualization.animator import AnimationBuilder
+from stock_animator.visualization.formatters import CurrencyFormatter
+from stock_animator.cli.prompts import CLIPrompter
 from stock_animator.config.settings import AnimationConfig
 
 class StockAnimatorCLI:
