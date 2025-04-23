@@ -97,6 +97,7 @@ class StockAnimatorGUI(QWidget):
 
         self.setLayout(layout)
         self.setWindowTitle('Stock Animator')
+        self.setMinimumSize(250, 0)
         self.mode_selector.currentIndexChanged.connect(self.toggle_inputs)
 
     def toggle_inputs(self):
