@@ -6,6 +6,8 @@ import pandas as pd
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 from stock_animator.config.settings import AnimationConfig
 import numpy as np
+import os
+import sys
 
 class AnimationBuilder:
     def __init__(self, config=AnimationConfig):
@@ -192,8 +194,20 @@ class AnimationBuilder:
 
     def _save_animation(self, ani, symbol):
         """Saves the animation as a video"""
+        # Path to the FFmpeg binary in the bundled program
+        if getattr(sys, 'frozen', False):
+            # Path in PyInstaller bundle
+            bundle_dir = sys._MEIPASS
+            ffmpeg_path = os.path.join(bundle_dir, 'lib', 'ffmpeg', 'bin')
+        else:
+            # Path in normal development mode
+            ffmpeg_path = os.path.join(os.getcwd(), 'lib', 'ffmpeg', 'bin')
+
+        # Add FFmpeg path to PATH environment variable
+        os.environ['PATH'] = ffmpeg_path + os.pathsep + os.environ['PATH']
+
         output_path = f'{self.config.OUTPUT_DIR}/{symbol}_animation.mp4'
-        print(output_path)
+
         ani.save(output_path, 
                 writer='ffmpeg',
                 dpi=self.config.DPI,

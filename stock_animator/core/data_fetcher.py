@@ -1,7 +1,7 @@
 import yfinance as yf
 import pandas as pd
 from pathlib import Path
-from config.settings import AnimationConfig
+from stock_animator.config.settings import AnimationConfig
 
 class DataHandler:
     def __init__(self, config=AnimationConfig):

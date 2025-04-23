@@ -1,4 +1,4 @@
-from config.settings import AnimationConfig
+from stock_animator.config.settings import AnimationConfig
 
 class CurrencyFormatter:
     def __init__(self, symbol):

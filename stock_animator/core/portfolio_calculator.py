@@ -1,5 +1,5 @@
 import pandas as pd
-from config.settings import AnimationConfig
+from stock_animator.config.settings import AnimationConfig
 
 class PortfolioCalculator:
     def __init__(self, data_handler):
@@ -17,7 +17,7 @@ class PortfolioCalculator:
         
         for frame, (date, row) in enumerate(data.iterrows()):
             shares_owned, total_invested = self._process_frame(frame, row, investment_steps, shares_owned, total_invested)
-            current_value = shares_owned * float(row['Close'])
+            current_value = shares_owned * float(row['Close'].iloc[0])
             dates.append(date)
             closes.append(current_value)
             invested.append(total_invested)
@@ -48,7 +48,7 @@ class PortfolioCalculator:
     def _process_frame(self, frame, row, steps, shares_owned, total_invested):
         """Process individual animation frame"""
         if frame in steps:
-            price = float(row['Close'])
+            price = float(row['Close'].iloc[0])
             shares_bought = steps[frame] / price
             shares_owned += shares_bought
             total_invested += steps[frame]
