@@ -1,12 +1,20 @@
 import pandas as pd
 from PyQt5.QtCore import QThread, pyqtSignal
+import sys
+import os
 
 class SymbolLoader(QThread):
     loaded = pyqtSignal(pd.DataFrame)
 
     def __init__(self, file_path):
         super().__init__()
-        self.file_path = file_path
+        if getattr(sys, 'frozen', False):
+            # Path in the bundled program
+            base_path = sys._MEIPASS
+            self.file_path = os.path.join(base_path, file_path)
+        else:
+            # Path in development mode
+            self.file_path = file_path
 
     def run(self):
         try:
