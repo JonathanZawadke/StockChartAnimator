@@ -11,6 +11,7 @@ import sys
 
 class AnimationBuilder:
     def __init__(self, config=AnimationConfig):
+        self.progress_callback = None
         self.config = config
         self.max_y = 0  # Holds the historical maximum value of the Y-axis
 
@@ -154,6 +155,11 @@ class AnimationBuilder:
 
         # THEN update axes (to keep text visible)
         self._update_dynamic_axes(ax, data, frame, show_invested, y_data)
+
+        # Add progress update
+        if self.progress_callback:
+            progress = int((frame / self._get_frame_count(data)) * 100)
+            self.progress_callback(progress)
 
         return self._get_return_elements(show_invested, line, line_inv, text, text_inv)
 

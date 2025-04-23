@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QComboBox,
-                             QDateEdit, QPushButton, QLabel, QLineEdit, QCheckBox)
+                             QDateEdit, QPushButton, QLabel, QLineEdit, QCheckBox, QProgressBar, QMessageBox)
 from PyQt5.QtCore import QDate, QStringListModel
 from stock_animator.core.data_fetcher import DataHandler
 from stock_animator.core.portfolio_calculator import PortfolioCalculator
@@ -8,6 +8,45 @@ from stock_animator.visualization.formatters import CurrencyFormatter
 from stock_animator.gui.symbol_combo_box import SymbolComboBox
 from stock_animator.gui.symbol_loader import SymbolLoader
 from stock_animator.config.settings import AnimationConfig
+from PyQt5.QtCore import QThread, pyqtSignal
+
+class AnimationWorker(QThread):
+    update_progress = pyqtSignal(int)
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+
+    def __init__(self, animator, data, symbol, formatter, portfolio_calculator, show_invested, mode, amount):
+        super().__init__()
+        self.animator = animator
+        self.data = data
+        self.symbol = symbol
+        self.formatter = formatter
+        self.portfolio_calculator = portfolio_calculator
+        self.show_invested = show_invested
+        self.mode = mode
+        self.amount = amount
+
+    def run(self):
+        try:
+            # Portfolio calculation for Mode M
+            if self.mode == 'M':
+                self.data = self.portfolio_calculator.calculate(
+                    self.data,
+                    self.amount
+                )
+
+            self.animator.progress_callback = self.update_progress.emit
+            ani = self.animator.create_animation(
+                self.data,
+                self.symbol,
+                self.formatter,
+                show_invested=self.show_invested
+            )
+
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
+
 
 class StockAnimatorGUI(QWidget):
     def __init__(self):
@@ -79,6 +118,11 @@ class StockAnimatorGUI(QWidget):
         self.generate_btn = QPushButton('Create Animation')
         self.generate_btn.clicked.connect(self.start_animation)
 
+        self.loading_label = QLabel("Generating animation...")
+        self.loading_label.setVisible(False)
+        self.loading_progress = QProgressBar()
+        self.loading_progress.setVisible(False)
+
         # Layout
         layout = QVBoxLayout()
         layout.addWidget(QLabel('Visualization Mode:'))
@@ -94,6 +138,8 @@ class StockAnimatorGUI(QWidget):
         layout.addWidget(self.investment_input)
         layout.addWidget(self.show_invested_check)
         layout.addWidget(self.generate_btn)
+        layout.addWidget(self.loading_label)
+        layout.addWidget(self.loading_progress)
 
         self.setLayout(layout)
         self.setWindowTitle('Stock Animator')
@@ -108,6 +154,11 @@ class StockAnimatorGUI(QWidget):
 
     def start_animation(self):
         try:
+            # Deactivate UI elements
+            self.generate_btn.setEnabled(False)
+            self.loading_label.setVisible(True)
+            self.loading_progress.setVisible(True)
+
             # Get mode from mapping
             mode_index = self.mode_selector.currentIndex()
             mode = self.mode_mapping.get(mode_index, 'P')
@@ -123,28 +174,47 @@ class StockAnimatorGUI(QWidget):
             data = self.data_handler.fetch_stock_data(symbol, start, end)
             data = self.data_handler.interpolate_data(data)
 
-            if mode == 'P':
-                self.animator.create_animation(data, symbol, self.formatter)
-                
-            elif mode == 'S':
-                amount = float(self.investment_input.text())
-                self.animator.create_animation(
-                    data, symbol, self.formatter, 
-                    start_capital=amount
-                )
-                
-            elif mode == 'M':
-                amount = float(self.investment_input.text())
-                portfolio_data = self.portfolio_calculator.calculate(data, amount)
-                self.animator.create_animation(
-                    portfolio_data, 
-                    symbol, 
-                    self.formatter,
-                    show_invested=self.show_invested_check.isChecked()
-                )
+            amount = None
+            if mode in ['S', 'M']:
+                try:
+                    amount = float(self.investment_input.text())
+                except ValueError:
+                    raise ValueError("Invalid investment amount")
+
+            # Create worker thread
+            self.worker = AnimationWorker(
+                animator=self.animator,
+                data=data,
+                symbol=symbol,
+                formatter=self.formatter,
+                portfolio_calculator=self.portfolio_calculator,
+                show_invested=self.show_invested_check.isChecked(),
+                mode=mode,
+                amount=amount
+            )
+            self.worker.moveToThread(QApplication.instance().thread())
+            
+            # Connect signals
+            self.worker.update_progress.connect(self.loading_progress.setValue)
+            self.worker.finished.connect(self.on_animation_finished)
+            self.worker.error.connect(self.on_animation_error)
+            self.worker.start()
                 
         except Exception as e:
             print(f'Error: {str(e)}')
+
+    def on_animation_finished(self):
+        self.loading_label.setVisible(False)
+        self.loading_progress.setVisible(False)
+        self.generate_btn.setEnabled(True)
+        # Show completion message
+        QMessageBox.information(self, "Success", "Animation created successfully!")
+
+    def on_animation_error(self, error_msg):
+        self.loading_label.setVisible(False)
+        self.loading_progress.setVisible(False)
+        self.generate_btn.setEnabled(True)
+        QMessageBox.critical(self, "Error", f"Error creating animation:\n{error_msg}")
 
 if __name__ == '__main__':
     app = QApplication([])
