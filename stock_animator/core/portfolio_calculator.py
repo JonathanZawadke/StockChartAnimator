@@ -62,10 +62,4 @@ class PortfolioCalculator:
             'Total_Invested': invested
         }, index=dates)
         
-        # 3. Save with clean format
-        df.to_csv("output/portfolio_value.csv", 
-                index=True, 
-                index_label='Date', 
-                float_format='%.4f')
-        
         return self.data_handler.interpolate_data(df)
