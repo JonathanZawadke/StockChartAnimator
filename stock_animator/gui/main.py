@@ -9,6 +9,7 @@ from stock_animator.gui.widgets.symbol_combo_box import SymbolComboBox
 from stock_animator.core.symbol_loader import SymbolLoader
 from stock_animator.config.settings import AnimationConfig
 from stock_animator.gui.utils.animation_worker import AnimationWorker
+import os
 
 class StockAnimatorGUI(QWidget):
     def __init__(self):
@@ -158,19 +159,25 @@ class StockAnimatorGUI(QWidget):
             
             # Connect signals
             self.worker.update_progress.connect(self.loading_progress.setValue)
-            self.worker.finished.connect(self.on_animation_finished)
+            self.worker.finished.connect(lambda: self.on_animation_finished(symbol))
             self.worker.error.connect(self.on_animation_error)
             self.worker.start()
                 
         except Exception as e:
             print(f'Error: {str(e)}')
 
-    def on_animation_finished(self):
+    def on_animation_finished(self, symbol):
         self.loading_label.setVisible(False)
         self.loading_progress.setVisible(False)
         self.generate_btn.setEnabled(True)
+        relative_path = f'{self.config.OUTPUT_DIR}/{symbol}_animation.mp4'
+        output_path = os.path.abspath(relative_path)
         # Show completion message
-        QMessageBox.information(self, "Success", "Animation created successfully!")
+        QMessageBox.information(
+            self, 
+            "Success", 
+            f"Animation created successfully!\n\nSaved to:\n{output_path}"
+            )
 
     def on_animation_error(self, error_msg):
         self.loading_label.setVisible(False)
