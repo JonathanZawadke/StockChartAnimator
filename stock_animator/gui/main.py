@@ -5,48 +5,10 @@ from stock_animator.core.data_fetcher import DataHandler
 from stock_animator.core.portfolio_calculator import PortfolioCalculator
 from stock_animator.visualization.animator import AnimationBuilder
 from stock_animator.visualization.formatters import CurrencyFormatter
-from stock_animator.gui.symbol_combo_box import SymbolComboBox
-from stock_animator.gui.symbol_loader import SymbolLoader
+from stock_animator.gui.widgets.symbol_combo_box import SymbolComboBox
+from stock_animator.core.symbol_loader import SymbolLoader
 from stock_animator.config.settings import AnimationConfig
-from PyQt5.QtCore import QThread, pyqtSignal
-
-class AnimationWorker(QThread):
-    update_progress = pyqtSignal(int)
-    finished = pyqtSignal()
-    error = pyqtSignal(str)
-
-    def __init__(self, animator, data, symbol, formatter, portfolio_calculator, show_invested, mode, amount):
-        super().__init__()
-        self.animator = animator
-        self.data = data
-        self.symbol = symbol
-        self.formatter = formatter
-        self.portfolio_calculator = portfolio_calculator
-        self.show_invested = show_invested
-        self.mode = mode
-        self.amount = amount
-
-    def run(self):
-        try:
-            # Portfolio calculation for Mode M
-            if self.mode == 'M':
-                self.data = self.portfolio_calculator.calculate(
-                    self.data,
-                    self.amount
-                )
-
-            self.animator.progress_callback = self.update_progress.emit
-            ani = self.animator.create_animation(
-                self.data,
-                self.symbol,
-                self.formatter,
-                show_invested=self.show_invested
-            )
-
-            self.finished.emit()
-        except Exception as e:
-            self.error.emit(str(e))
-
+from stock_animator.gui.utils.animation_worker import AnimationWorker
 
 class StockAnimatorGUI(QWidget):
     def __init__(self):
@@ -55,7 +17,7 @@ class StockAnimatorGUI(QWidget):
         self.data_handler = DataHandler()
         self.portfolio_calculator = PortfolioCalculator(self.data_handler)
         self.animator = AnimationBuilder()
-        self.symbol_loader = SymbolLoader("stock_animator/core/symbol.csv")
+        self.symbol_loader = SymbolLoader("stock_animator/config/symbol.csv")
         self.init_symbol_selector()
         self.formatter = None
         self.mode_mapping = {
