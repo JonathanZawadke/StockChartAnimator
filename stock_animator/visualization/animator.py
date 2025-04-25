@@ -1,9 +1,11 @@
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 import pandas as pd
-from matplotlib.ticker import MaxNLocator, FuncFormatter
+from matplotlib.ticker import MaxNLocator
 from stock_animator.config.settings import AnimationConfig
 import numpy as np
 import os
@@ -14,6 +16,8 @@ class AnimationBuilder:
         self.progress_callback = None
         self.config = config
         self.max_y = 0  # Holds the historical maximum value of the Y-axis
+        self.fig = None
+        self.ax = None
 
     def create_animation(self, data, symbol, formatter, **options):
         """Main method to create animation"""
@@ -43,12 +47,13 @@ class AnimationBuilder:
 
     def _setup_figure(self): 
         """Initialize matplotlib figure"""
-        fig, ax = plt.subplots()
-        fig.set_size_inches(*self.config.FIGURE_SIZE)
-        fig.set_dpi(self.config.DPI)
-        fig.patch.set_facecolor(self.config.COLORS['background'])
-        fig.autofmt_xdate()
-        return fig, ax
+        if self.fig is None or self.ax is None:
+            self.fig, self.ax = plt.subplots()
+            self.fig.set_size_inches(*self.config.FIGURE_SIZE)
+            self.fig.set_dpi(self.config.DPI)
+            self.fig.patch.set_facecolor(self.config.COLORS['background'])
+            self.fig.autofmt_xdate()
+        return self.fig, self.ax
 
     def _style_axes(self, ax):
         """Style plot axes"""
