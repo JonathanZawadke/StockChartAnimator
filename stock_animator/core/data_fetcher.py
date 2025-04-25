@@ -13,7 +13,12 @@ class DataHandler:
         
     def fetch_stock_data(self, symbol, start, end):
         """Fetch stock data from Yahoo Finance"""
-        data = yf.download(symbol, start=start, end=end)
+        data = yf.download(
+            symbol, 
+            start=start, 
+            end=end,
+            auto_adjust=True
+            )
         return data
     
     def interpolate_data(self, data):
