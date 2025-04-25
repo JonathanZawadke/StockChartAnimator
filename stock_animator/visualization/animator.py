@@ -193,7 +193,18 @@ class AnimationBuilder:
         self.max_y = max(self.max_y, max_val)
         margin = (self.max_y - min_val) * self.config.Y_MARGIN_PCT
         
-        ax.set_ylim(max(min_val - margin, 0), self.max_y + margin)
+        # Calculate the boundaries
+        lower_bound = max(min_val - margin, 0)
+        upper_bound = self.max_y + margin
+        
+        # Add a minimum difference if boundaries are identical
+        if upper_bound - lower_bound < 1e-6:  # Almost identical
+            if upper_bound == 0:  # Special case: All values ​​are 0
+                upper_bound = 0.1  # Arbitrary small value
+            else:
+                upper_bound += 0.01 * abs(upper_bound)  # 1% of the upper value
+        
+        ax.set_ylim(lower_bound, upper_bound)
 
     def _get_return_elements(self, show_invested, *elements):
         """Returns the required graphic elements"""
